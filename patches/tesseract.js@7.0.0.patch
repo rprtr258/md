@@ -1,0 +1,17 @@
+diff --git a/src/worker-script/node/getCore.js b/src/worker-script/node/getCore.js
+index 3c1d4cb1055040078ae53d7bdee6fde7abe4d702..beb8587ea913521b72e32c278c413b3b0c410d74 100644
+--- a/src/worker-script/node/getCore.js
++++ b/src/worker-script/node/getCore.js
+@@ -13,7 +13,11 @@ module.exports = async (oem, _, res) => {
+     const statusText = 'loading tesseract core';
+ 
+     const simdSupport = await simd();
+-    const relaxedSimdSupport = await relaxedSimd();
++    // Relaxed-SIMD builds of tesseract.js-core ship with DotProductSSE wired to an
++    // abort stub ("missing function: _ZN9tesseract13DotProductSSEEPKfS1_i"), which
++    // crashes recognition on any runtime that reports relaxed-SIMD support
++    // (Node 22+, Bun 1.x). Skip them and fall through to the plain SIMD builds.
++    const relaxedSimdSupport = false && await relaxedSimd();
+     res.progress({ status: statusText, progress: 0 });
+     if (relaxedSimdSupport) {
+       if ([OEM.DEFAULT, OEM.LSTM_ONLY].includes(oem)) {

@@ -1,0 +1,30 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`render frontmatter as table above the body 1`] = `
+"<!doctype html>
+<meta charset="utf-8">
+<style>table{border-collapse:collapse}th,td{border:1px solid #999;padding:.2em .5em;text-align:left}</style>
+<div class="frontmatter"><table class="frontmatter"><tr><th>title</th><td>x</td></tr><tr><th>tags</th><td>[&quot;a&quot;,&quot;b&quot;]</td></tr><tr><th>meta</th><td>{&quot;y&quot;:1}</td></tr></table></div>
+<hr>
+<h1>Hello</h1>
+<p><strong>world</strong></p>
+"
+`;
+
+exports[`render no frontmatter has no separator 1`] = `
+"<!doctype html>
+<meta charset="utf-8">
+<style>table{border-collapse:collapse}th,td{border:1px solid #999;padding:.2em .5em;text-align:left}</style>
+<h1>Hello</h1>
+"
+`;
+
+exports[`render non-object frontmatter as raw code 1`] = `
+"<!doctype html>
+<meta charset="utf-8">
+<style>table{border-collapse:collapse}th,td{border:1px solid #999;padding:.2em .5em;text-align:left}</style>
+<div class="frontmatter"><code>just a string</code></div>
+<hr>
+<h1>Hello</h1>
+"
+`;
