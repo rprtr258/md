@@ -9,4 +9,9 @@ describe("render", () => {
   ])("%s", (_name, input) => {
     expect(render(input)).toMatchSnapshot();
   });
+
+  test("gfm tables render", async () => {
+    const html = render(await Bun.file(new URL("testdata/tables.md", import.meta.url)).text());
+    expect(html.match(/<table/g)).toHaveLength(2);
+  });
 });

@@ -2,12 +2,14 @@ import {existsSync, readFileSync, statSync} from "node:fs";
 import {resolve} from "node:path";
 import {unified} from "unified";
 import remarkFrontmatter from "remark-frontmatter";
+import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
 import remarkHtml from "remark-html";
 import type {Heading, Root, RootContent} from "mdast";
 
 export const processor = unified()
   .use(remarkParse)
+  .use(remarkGfm)
   .use(remarkFrontmatter)
   .use(remarkHtml);
 
