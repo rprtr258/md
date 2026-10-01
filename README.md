@@ -3,7 +3,7 @@
 Bun workspace with three packages:
 
 - `packages/common` — `@rprtr258/md-common`, the core: parsing, lint, conversion
-- `packages/md` — `@rprtr258/md`, the `md` CLI on top of common (bun-first; its cliffy dependency comes from JSR, so install it with bun, not npm)
+- `packages/md` — `@rprtr258/md`, the `md` CLI on top of common
 - `packages/pi` — `@rprtr258/md-pi`, a [pi](https://github.com/earendil-works/pi-coding-agent) package exposing the CLI as agent tools
 
 ## CLI
