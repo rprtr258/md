@@ -115,6 +115,18 @@ describe("get", () => {
       expect(code).toBe(0);
       expect(out).toBe("https://bun.com\nlogo.png\n./other.md\n");
     });
+
+    test("resolves reference-style links", async () => {
+      const {out, code} = await run(["get", "links", "reflinks.md"]);
+      expect(code).toBe(0);
+      expect(out).toBe("https://www.somewebsite.com\nhttps://www.somewebsite.org\n../blob/master/LICENSE\nhttp://somewebsite.org\nhttp://www.somewebsite.com\n");
+    });
+
+    test("deduplicates repeated urls keeping first occurrence", async () => {
+      const {out, code} = await run(["get", "links", "-"], "[a](https://x.com)\n\n[b](https://x.com)\n\n[c](https://y.com)\n");
+      expect(code).toBe(0);
+      expect(out).toBe("https://x.com\nhttps://y.com\n");
+    });
   });
 });
 

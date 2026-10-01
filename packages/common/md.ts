@@ -6,14 +6,18 @@ import {unified} from "unified";
 import remarkFrontmatter from "remark-frontmatter";
 import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
-import remarkHtml from "remark-html";
+import remarkRehype from "remark-rehype";
+import rehypeHighlight from "rehype-highlight";
+import rehypeStringify from "rehype-stringify";
 import type {Heading, Root, RootContent} from "mdast";
 
 export const processor = unified()
   .use(remarkParse)
   .use(remarkGfm)
   .use(remarkFrontmatter)
-  .use(remarkHtml);
+  .use(remarkRehype, {allowDangerousHtml: true})
+  .use(rehypeHighlight, {detect: true})
+  .use(rehypeStringify);
 
 export async function read(file: string): Promise<string> {
   try {
@@ -42,13 +46,36 @@ export function headingText(node: Heading): string {
     .join("");
 }
 
-export function* collectLinks(node: Root | RootContent): Generator<{url: string, line: number}> {
-  if (node.type === "link" || node.type === "image") {
-    yield {url: node.url, line: node.position?.start.line ?? 0};
+function collectDefinitions(node: Root | RootContent, definitions: Map<string, string>) {
+  if (node.type === "definition") {
+    definitions.set(node.identifier, node.url);
   }
   if ("children" in node) {
     for (const child of node.children) {
-      yield* collectLinks(child);
+      collectDefinitions(child, definitions);
+    }
+  }
+}
+
+export function* collectLinks(node: Root | RootContent): Generator<{url: string, line: number}> {
+  // reference-style links/images resolve against definitions collected from the whole tree, since references may precede their definitions
+  const definitions = new Map<string, string>();
+  collectDefinitions(node, definitions);
+  yield* walkLinks(node, definitions);
+}
+
+function* walkLinks(node: Root | RootContent, definitions: Map<string, string>): Generator<{url: string, line: number}> {
+  if (node.type === "link" || node.type === "image") {
+    yield {url: node.url, line: node.position?.start.line ?? 0};
+  } else if (node.type === "linkReference" || node.type === "imageReference") {
+    const url = definitions.get(node.identifier);
+    if (url !== undefined) {
+      yield {url, line: node.position?.start.line ?? 0};
+    }
+  }
+  if ("children" in node) {
+    for (const child of node.children) {
+      yield* walkLinks(child, definitions);
     }
   }
 }
@@ -145,7 +172,8 @@ export async function list(directory = "."): Promise<string> {
 }
 
 export function links(source: string): string[] {
-  return [...collectLinks(processor.parse(source))].map(({url}) => url);
+  // deduplicate, keeping first-occurrence order (Set iterates in insertion order)
+  return [...new Set([...collectLinks(processor.parse(source))].map(({url}) => url))];
 }
 
 export async function map(directory = ".", titles = false): Promise<string> {

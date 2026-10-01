@@ -1,6 +1,6 @@
 {
   "name": "@rprtr258/md-pi",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "type": "module",
   "description": "pi package exposing the @rprtr258/md CLI as agent tools",
   "keywords": ["pi-package", "markdown", "pi", "pi-coding-agent"],

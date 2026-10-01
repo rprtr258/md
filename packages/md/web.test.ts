@@ -14,4 +14,17 @@ describe("render", () => {
     const html = render(await Bun.file(new URL("testdata/tables.md", import.meta.url)).text());
     expect(html.match(/<table/g)).toHaveLength(2);
   });
+
+  test("reference links render resolved", async () => {
+    const html = render(await Bun.file(new URL("testdata/reflinks.md", import.meta.url)).text());
+    const hrefs = [...html.matchAll(/<a href="([^"]+)"/g)].map((match) => match[1]!);
+    expect(hrefs).toEqual([
+      "https://www.somewebsite.com",
+      "https://www.somewebsite.com",
+      "https://www.somewebsite.org",
+      "../blob/master/LICENSE",
+      "http://somewebsite.org",
+      "http://www.somewebsite.com",
+    ]);
+  });
 });
