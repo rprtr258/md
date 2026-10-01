@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 import {Command} from "@cliffy/command";
 import {frontmatter, links, list, map, section, stats, toc, read} from "./md.ts";
 import {lint, lintSchema} from "./lint.ts";
