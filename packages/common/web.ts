@@ -1,7 +1,9 @@
 import {mkdtemp, writeFile} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
-import {processor} from "./md";
+import {spawn} from "node:child_process";
+import {parse as yamlParse} from "yaml";
+import {processor} from "./md.ts";
 
 function escape(value: string): string {
   return value
@@ -12,7 +14,7 @@ function escape(value: string): string {
 }
 
 function renderFrontmatter(yaml: string): string {
-  const data = Bun.YAML.parse(yaml);
+  const data = yamlParse(yaml);
   if (typeof data !== "object" || data === null) {
     return `<code>${escape(yaml)}</code>`;
   }
@@ -42,7 +44,7 @@ export async function web(source: string): Promise<void> {
   };
   if (process.platform in openers) {
     const [command, prefix] = openers[process.platform]!;
-    Bun.spawn([command, ...prefix, file], {stdin: "ignore", stdout: "ignore", stderr: "ignore"});
+    spawn(command, [...prefix, file], {stdio: "ignore", detached: true}).unref();
   } else {
     console.log(`Open ${file}`);
   }

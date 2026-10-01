@@ -17,6 +17,7 @@ export async function run(args: string[], input?: string) {
   const cwd = process.cwd();
   process.chdir(dir);
   const code = await (async () => {
+    const prevExit = process.exitCode;
     try {
       await command.parse(args);
       return 0;
@@ -28,6 +29,7 @@ export async function run(args: string[], input?: string) {
       console.error = realError;
       (Bun as {stdin: unknown}).stdin = realStdin;
       process.chdir(cwd);
+      process.exitCode = prevExit;
     }
   })();
   return {out: out.join(""), err: err.join(""), code};

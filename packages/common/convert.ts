@@ -1,4 +1,5 @@
 import {existsSync} from "node:fs";
+import {readFile} from "node:fs/promises";
 import {extname} from "node:path";
 import {fileURLToPath} from "node:url";
 import Tesseract, {createWorker} from "tesseract.js";
@@ -9,7 +10,7 @@ const RENDER_SCALE = 2;
 
 async function convertPdf(file: string): Promise<string> {
   const doc = await pdfjs.getDocument({
-    data: new Uint8Array(await Bun.file(file).arrayBuffer()),
+    data: new Uint8Array(await readFile(file)),
     standardFontDataUrl,
   }).promise;
   const pages2 = await Promise.all(Array.from({length: doc.numPages}).map((_, i) => doc.getPage(i + 1)));

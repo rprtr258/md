@@ -1,5 +1,7 @@
 import {existsSync, readFileSync, statSync} from "node:fs";
-import {resolve} from "node:path";
+import {readdir} from "node:fs/promises";
+import {join, relative, resolve} from "node:path";
+import {parse as yamlParse} from "yaml";
 import {unified} from "unified";
 import remarkFrontmatter from "remark-frontmatter";
 import remarkGfm from "remark-gfm";
@@ -15,13 +17,22 @@ export const processor = unified()
 
 export async function read(file: string): Promise<string> {
   try {
-    return file === "-" ? await Bun.stdin.text() : readFileSync(file, "utf8");
+    return file === "-" ? await stdin() : readFileSync(file, "utf8");
   } catch (error) {
     if ((error as {code?: string}).code === "ENOENT") {
       throw new Error(`File not found: ${file}`);
     }
     throw error;
   }
+}
+
+async function stdin(): Promise<string> {
+  if (typeof Bun !== "undefined")
+    return await Bun.stdin.text();
+  const chunks: Buffer[] = [];
+  for await (const chunk of process.stdin)
+    chunks.push(chunk as Buffer);
+  return Buffer.concat(chunks).toString("utf8");
 }
 
 export function headingText(node: Heading): string {
@@ -48,7 +59,7 @@ export function frontmatter(source: string, json = false): string | undefined {
   if (value === undefined)
     return undefined;
 
-  return json ? JSON.stringify(Bun.YAML.parse(value), null, 2) : value;
+  return json ? JSON.stringify(yamlParse(value), null, 2) : value;
 }
 
 export function slug(text: string): string {
@@ -113,32 +124,43 @@ export async function findFiles(directory: string): Promise<string[]> {
     throw new Error(`Directory not found: ${directory}`);
   }
 
-  const glob = new Bun.Glob("**/*.md");
-  return (await Array.fromAsync(glob.scan({onlyFiles: true, cwd: directory})))
+  const base = resolve(directory);
+  const files: string[] = [];
+  async function walk(dir: string): Promise<void> {
+    for (const entry of await readdir(dir, {withFileTypes: true})) {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory())
+        await walk(path);
+      else if (entry.name.endsWith(".md"))
+        files.push(path);
+    }
+  }
+  await walk(base);
+  return files.map(file => relative(base, file))
     .filter(file => !file.split("/").some(part => ["node_modules", ".git"].includes(part)));
 }
 
-export async function list(directory = "."): Promise<void> {
-  for (const file of await findFiles(directory)) {
-    console.log(file);
-  }
+export async function list(directory = "."): Promise<string> {
+  return (await findFiles(directory)).join("\n");
 }
 
 export function links(source: string): string[] {
   return [...collectLinks(processor.parse(source))].map(({url}) => url);
 }
 
-export async function map(directory = ".", titles = false): Promise<void> {
+export async function map(directory = ".", titles = false): Promise<string> {
+  const lines: string[] = [];
   for (const file of await findFiles(directory)) {
     const headings = processor.parse(await read(resolve(directory, file))).children.filter(node => node.type === "heading");
     if (titles) {
       const heading = headings.find(node => node.depth === 1);
-      console.log(heading ? `${file}: ${headingText(heading)}` : file);
+      lines.push(heading ? `${file}: ${headingText(heading)}` : file);
     } else {
-      console.log(file);
+      lines.push(file);
       for (const node of headings) {
-        console.log("  ".repeat(node.depth) + headingText(node));
+        lines.push("  ".repeat(node.depth) + headingText(node));
       }
     }
   }
+  return lines.join("\n");
 }

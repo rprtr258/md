@@ -1,0 +1,39 @@
+{
+  "name": "@rprtr258/md-common",
+  "version": "0.0.2",
+  "type": "module",
+  "description": "Core of the @rprtr258/md markdown toolkit: parsing, lint, conversion, and a minimal CLI entry",
+  "keywords": ["markdown", "cli"],
+  "files": [
+    "md.ts",
+    "lint.ts",
+    "convert.ts",
+    "web.ts",
+    "patches/"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "typescript": "^7"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/mdast": "^4.0.4"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^1.0.9",
+    "ajv": "^8.20.0",
+    "pdfjs-dist": "^6.3.289",
+    "remark-frontmatter": "^5.0.0",
+    "remark-gfm": "^4.0.1",
+    "remark-html": "^16.0.1",
+    "remark-parse": "^11.0.0",
+    "tesseract.js": "^7.0.0",
+    "unified": "^11.0.5",
+    "yaml": "^2.8.1"
+  },
+  "patchedDependencies": {
+    "tesseract.js@7.0.0": "patches/tesseract.js@7.0.0.patch"
+  }
+}

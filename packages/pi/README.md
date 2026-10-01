@@ -1,17 +1,40 @@
 # @rprtr258/md-pi
 
-[pi](https://github.com/earendil-works/pi-coding-agent) package exposing the [`@rprtr258/md`](https://www.npmjs.com/package/@rprtr258/md) CLI as agent tools. Each tool spawns the CLI (`bun index.ts ...`) and returns its output, so [bun](https://bun.com) must be on the PATH.
+[pi](https://github.com/earendil-works/pi-coding-agent) package that turns the [`@rprtr258/md`](https://www.npmjs.com/package/@rprtr258/md) CLI into agent tools. Your agent answers questions about markdown files with exact, deterministic commands — frontmatter, links, TOC, lint — instead of reading whole files or writing throwaway scripts.
+
+- **10 tools**, one per `md` subcommand, all read-only.
+- **PDF & PNG in.** `md_convert` turns PDFs and scanned PNGs into markdown.
+- **No global CLI install.** The CLI ships as a dependency; the only requirement is [bun](https://bun.com) on the PATH.
 
 ## Install
 
 ```bash
-pi install npm:@rprtr258/md-pi   # from npm (after publishing)
-pi install ./packages/pi                # local, from the repo root
-pi -e ./packages/pi                     # try once, nothing persisted
+pi install npm:@rprtr258/md-pi
 ```
 
-Git installs clone the repo root — that's the CLI package, so there is no git source for the extension unless it moves to its own repo.
+That's it. Check `bun --version` if it doesn't work — every tool runs the CLI through bun. Then start a new pi session and just ask, e.g. *"lint every markdown file in docs/"* or *"what's the frontmatter of README.md?"* — the agent picks the matching `md_*` tool.
 
 ## Tools
 
-`md_frontmatter`, `md_links`, `md_toc`, `md_section`, `md_stats`, `md_list`, `md_lint`, `md_lint_schema`, `md_map`, `md_convert` — one per `md` subcommand (except `web`, which opens a browser).
+| Tool | What it does |
+|---|---|
+| `md_frontmatter` | print a file's YAML frontmatter (optionally as JSON) |
+| `md_links` | print every link/image/autolink URL, one per line |
+| `md_toc` | print the table of contents |
+| `md_section` | print everything under a heading |
+| `md_stats` | line counts and file size |
+| `md_list` | list all markdown files in a directory (recursive) |
+| `md_lint` | static deterministic lint, file or directory |
+| `md_lint_schema` | validate frontmatter against a JSON Schema file |
+| `md_map` | heading tree for every file in a directory |
+| `md_convert` | convert a PDF or PNG file to markdown text |
+
+## Install from source
+
+```bash
+git clone https://github.com/rprtr258/md && cd md
+pi install ./packages/pi    # install in place
+pi -e ./packages/pi         # or try once, nothing persisted
+```
+
+There is no git install source: `pi install git:...` looks at the repo root, which is the CLI package, not this one.

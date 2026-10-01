@@ -1,8 +1,9 @@
 # md
 
-Bun workspace with two packages:
+Bun workspace with three packages:
 
-- `packages/md` — `@rprtr258/md`, the `md` CLI
+- `packages/common` — `@rprtr258/md-common`, the core: parsing, lint, conversion
+- `packages/md` — `@rprtr258/md`, the `md` CLI on top of common (bun-first; its cliffy dependency comes from JSR, so install it with bun, not npm)
 - `packages/pi` — `@rprtr258/md-pi`, a [pi](https://github.com/earendil-works/pi-coding-agent) package exposing the CLI as agent tools
 
 ## CLI
@@ -25,13 +26,14 @@ Commands: `get frontmatter`, `get links`, `toc`, `section`, `stats`, `list`, `li
 
 ## pi package
 
-`packages/pi` depends on the CLI package and registers its commands as agent tools: `md_frontmatter`, `md_links`, `md_toc`, `md_section`, `md_stats`, `md_list`, `md_lint`, `md_lint_schema`, `md_map`, `md_convert`. Each tool spawns the CLI (`bun index.ts ...`), so [bun](https://bun.com) must be on the PATH.
+`packages/pi` depends on the core package and registers one agent tool per CLI subcommand: `md_frontmatter`, `md_links`, `md_toc`, `md_section`, `md_stats`, `md_list`, `md_lint`, `md_lint_schema`, `md_map`, `md_convert`. The tools import `md-common` directly and run in pi's process — no spawning, no bun on the PATH.
 
 Install: `pi install npm:@rprtr258/md-pi` (or `pi install ./packages/pi` locally) — see `packages/pi/README.md`.
 
-Publish both packages:
+Publish all three packages (use `bun publish` — it rewrites `workspace:*` deps; `npm publish` leaves them broken):
 
 ```bash
-(cd packages/md && npm publish --access public)
-(cd packages/pi && npm publish --access public)
+(cd packages/common && bun publish)
+(cd packages/md && bun publish)
+(cd packages/pi && bun publish)
 ```

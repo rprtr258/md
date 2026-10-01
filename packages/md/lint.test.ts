@@ -51,10 +51,9 @@ describe("lint schema", () => {
   });
 
   test("reports violations and exits 1", async () => {
-    const {out, err, code} = await run(["lint", "schema", "schema-bad.md", "schema.json"]);
+    const {out, code} = await run(["lint", "schema", "schema-bad.md", "schema.json"]);
     expect(code).toBe(1);
     expect(out).toContain("schema-bad.md\n  schema: /description must be string");
-    expect(err).toContain("1 issues found");
   });
 
   test("supports 2020-12 schemas", async () => {

@@ -1,6 +1,7 @@
 import {existsSync, statSync} from "node:fs";
 import {dirname, resolve} from "node:path";
-import {collectLinks, findFiles, frontmatter, headingText, processor, read} from "./md";
+import {collectLinks, findFiles, frontmatter, headingText, processor, read} from "./md.ts";
+import {parse as yamlParse} from "yaml";
 
 type Diagnostic = {
   rule: "missing-h1" | "duplicate-heading" | "heading-skip" | "broken-link" | "empty-link-url" | "unclosed-fence",
@@ -67,39 +68,37 @@ async function* lintFile(file: string): AsyncGenerator<Diagnostic> {
   }
 }
 
-export async function lint(path = "."): Promise<void> {
+export async function lint(path = "."): Promise<string> {
   const files: [path: string, file: string][] = existsSync(path) && statSync(path).isDirectory()
     ? (await findFiles(path)).map(file => [file, resolve(path, file)])
     : [[path, path]];
   const groups = await Promise.all(files.map(async ([display, file]): Promise<[string, Diagnostic[]]> => [display, await Array.fromAsync(lintFile(file))]));
+  const lines: string[] = [];
   for (const [path, group] of groups.filter(([, group]) => group.length > 0)) {
-    console.log(path);
+    lines.push(path);
     for (const {rule, line, detail} of group) {
-      console.log(`  ${line}: ${rule}: ${detail}`);
+      lines.push(`  ${line}: ${rule}: ${detail}`);
     }
-    console.log();
+    lines.push("");
   }
-
-  const diagnostics = groups.map(([, group]) => group.length).reduce((acc, x) => acc + x, 0);
-  if (diagnostics > 0)
-    throw new Error(`${diagnostics} issues found`);
+  return lines.join("\n");
 }
 
-export async function lintSchema(file: string, schemaFile: string): Promise<void> {
+export async function lintSchema(file: string, schemaFile: string): Promise<string> {
   const raw = frontmatter(await read(file));
   if (raw === undefined)
     throw new Error(`No frontmatter in ${file}`);
-  const schema = Bun.YAML.parse(await read(schemaFile)) as {$schema?: string};
+  const schema = yamlParse(await read(schemaFile)) as {$schema?: string};
   const {default: Ajv} = schema.$schema?.includes("2020-12")
     ? await import("ajv/dist/2020")
     : await import("ajv");
   const validate = new Ajv({allErrors: true}).compile(schema);
-  if (validate(Bun.YAML.parse(raw)))
-    return;
+  if (validate(yamlParse(raw)))
+    return "";
   const errors = validate.errors ?? [];
-  console.log(file);
+  const lines = [file];
   for (const {instancePath, message} of errors) {
-    console.log(`  schema: ${instancePath || "/"} ${message}`);
+    lines.push(`  schema: ${instancePath || "/"} ${message}`);
   }
-  throw new Error(`${errors.length} issues found`);
+  return lines.join("\n");
 }

@@ -1,6 +1,6 @@
 {
   "name": "@rprtr258/md-pi",
-  "version": "0.0.1",
+  "version": "0.0.5",
   "type": "module",
   "description": "pi package exposing the @rprtr258/md CLI as agent tools",
   "keywords": ["pi-package", "markdown", "pi", "pi-coding-agent"],
@@ -15,7 +15,7 @@
     "extensions": ["./extension.ts"]
   },
   "dependencies": {
-    "@rprtr258/md": "workspace:*"
+    "@rprtr258/md-common": "workspace:*"
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",

@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 import {Command} from "@cliffy/command";
-import {frontmatter, links, list, map, section, stats, toc, read} from "./md.ts";
-import {lint, lintSchema} from "./lint.ts";
-import {web} from "./web.ts";
-import {convert} from "./convert.ts";
+import {frontmatter, links, list, map, section, stats, toc, read} from "@rprtr258/md-common/md.ts";
+import {lint, lintSchema} from "@rprtr258/md-common/lint.ts";
+import {web} from "@rprtr258/md-common/web.ts";
+import {convert} from "@rprtr258/md-common/convert.ts";
 
 export const command = new Command()
   .name("md")
@@ -59,16 +59,32 @@ export const command = new Command()
   .command("list", new Command()
     .description("List all available markdown files")
     .arguments("[directory:string]")
-    .action((_options, directory?: string) => list(directory)),
+    .action(async (_options, directory?: string) => {
+      const out = await list(directory);
+      if (out)
+        console.log(out);
+    }),
   )
   .command("lint", new Command()
     .description("Lint a markdown file or directory with static deterministic rules")
     .arguments("[path:string]")
-    .action((_options, path?: string) => lint(path))
+    .action(async (_options, path?: string) => {
+      const out = await lint(path);
+      if (out) {
+        console.log(out);
+        throw new Error("issues found");
+      }
+    })
     .command("schema", new Command()
       .description("Validate the frontmatter of a markdown file against a JSON Schema")
       .arguments("<file:string> <schema:string>")
-      .action(async (_options, file: string, schema: string) => lintSchema(file, schema)),
+      .action(async (_options, file: string, schema: string) => {
+        const out = await lintSchema(file, schema);
+        if (out) {
+          console.log(out);
+          throw new Error("issues found");
+        }
+      }),
     ),
   )
   .command("web", new Command()
@@ -80,7 +96,11 @@ export const command = new Command()
     .description("Print each markdown file in a directory with its heading tree beneath it")
     .arguments("[directory:string]")
     .option("--title", "Print each file's title heading on one line")
-    .action((_options, directory?: string) => map(directory, _options.title)),
+    .action(async (_options, directory?: string) => {
+      const out = await map(directory, _options.title);
+      if (out)
+        console.log(out);
+    }),
   )
   .command("convert", new Command()
     .description("Converts given file to text")

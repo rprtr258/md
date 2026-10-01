@@ -1,10 +1,18 @@
 import {expect, test} from "bun:test";
-import {run} from "./extension.ts";
+import {tools} from "./extension.ts";
 
-test("run executes the CLI and returns stdout", async () => {
-  expect(await run(["stats", "README.md"])).toContain("lines:");
+function call(name: string, params: unknown): Promise<string> {
+  const tool = tools.find(t => t.name === name)! as unknown as {
+    execute: (...args: unknown[]) => Promise<{content: Array<{text: string}>}>;
+  };
+  return tool.execute("test", params, new AbortController().signal, {}, undefined)
+    .then(result => result.content[0]!.text);
+}
+
+test("md_stats returns line counts", async () => {
+  expect(await call("md_stats", {file: "README.md"})).toContain("lines:");
 });
 
-test("run returns CLI error output on nonzero exit", async () => {
-  expect(await run(["stats", "/nonexistent.md"])).toContain("File not found");
+test("md_stats propagates read errors", async () => {
+  expect(call("md_stats", {file: "/nonexistent.md"})).rejects.toThrow("File not found");
 });

@@ -1,5 +1,5 @@
 import {describe, expect, test} from "bun:test";
-import {render} from "./web.ts";
+import {render} from "@rprtr258/md-common/web.ts";
 
 describe("render", () => {
   test.each([
