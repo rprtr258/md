@@ -1,6 +1,6 @@
 import {Type, type Static, type TSchema} from "@earendil-works/pi-ai";
 import {defineTool, type ExtensionAPI} from "@earendil-works/pi-coding-agent";
-import {frontmatter, links, list, map, read, section, stats, toc} from "@rprtr258/md-common/md.ts";
+import {frontmatter, links, list, map, read, section, stats, toc, todos} from "@rprtr258/md-common/md.ts";
 import {lint, lintSchema} from "@rprtr258/md-common/lint.ts";
 
 // pi runs extensions in its own process under Node; the core is plain Node code,
@@ -30,6 +30,9 @@ export const tools = [
   mdTool("links", "Print every link/image/autolink URL of a markdown file, one per line.",
     Type.Object({file}),
     async (params) => links(await read(params.file)).join("\n")),
+  mdTool("todos", "Print the lines of task list items (- [ ] / - [x]) of a markdown file, one per line. Empty output when the file has no task list items.",
+    Type.Object({file}),
+    async (params) => todos(await read(params.file)).join("\n")),
   mdTool("toc", "Print the table of contents (headers) of a markdown file.",
     Type.Object({file}),
     async (params) => toc(await read(params.file)) ?? ""),

@@ -128,6 +128,26 @@ describe("get", () => {
       expect(out).toBe("https://x.com\nhttps://y.com\n");
     });
   });
+
+  describe("todos", () => {
+    test("prints task list item lines with checkbox state", async () => {
+      const {out, code} = await run(["get", "todos", "-"], "- [ ] open\n- [x] done\n");
+      expect(code).toBe(0);
+      expect(out).toBe("- [ ] open\n- [x] done\n");
+    });
+
+    test("includes nested and ordered task items, skips plain list items", async () => {
+      const {out, code} = await run(["get", "todos", "-"], "- plain\n- [ ] open\n  - [x] nested\n\n1. [ ] ordered\n- [ ]notask\n");
+      expect(code).toBe(0);
+      expect(out).toBe("- [ ] open\n  - [x] nested\n1. [ ] ordered\n");
+    });
+
+    test("prints nothing for a file without task lists", async () => {
+      const {out, code} = await run(["get", "todos", "basic.md"]);
+      expect(code).toBe(0);
+      expect(out).toBe("");
+    });
+  });
 });
 
 describe("stats", () => {

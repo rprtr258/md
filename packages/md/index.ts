@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import {Command} from "commander";
-import {frontmatter, links, list, map, section, stats, toc, read} from "@rprtr258/md-common/md.ts";
+import {frontmatter, links, list, map, section, stats, toc, read, todos} from "@rprtr258/md-common/md.ts";
 import {lint, lintSchema} from "@rprtr258/md-common/lint.ts";
 import {web} from "@rprtr258/md-common/web.ts";
 import {convert} from "@rprtr258/md-common/convert.ts";
@@ -34,6 +34,16 @@ get
   .action(async (file: string) => {
     for (const url of links(await read(file))) {
       console.log(url);
+    }
+  });
+
+get
+  .command("todos")
+  .description("Print the lines of task list items (- [ ] / - [x]) of a markdown file (- reads stdin)")
+  .arguments("<file>")
+  .action(async (file: string) => {
+    for (const line of todos(await read(file))) {
+      console.log(line);
     }
   });
 program

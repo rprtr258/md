@@ -176,6 +176,23 @@ export function links(source: string): string[] {
   return [...new Set([...collectLinks(processor.parse(source))].map(({url}) => url))];
 }
 
+export function todos(source: string): string[] {
+  const lines = source.split("\n");
+  const result: string[] = [];
+  const walk = (node: Root | RootContent): void => {
+    if (node.type === "listItem" && node.checked !== null && node.position) {
+      result.push(lines[node.position.start.line - 1] ?? "");
+    }
+    if ("children" in node) {
+      for (const child of node.children) {
+        walk(child);
+      }
+    }
+  };
+  walk(processor.parse(source));
+  return result;
+}
+
 export async function map(directory = ".", titles = false): Promise<string> {
   const lines: string[] = [];
   for (const file of await findFiles(directory)) {
