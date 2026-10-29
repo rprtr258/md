@@ -9,6 +9,7 @@
     "lint.ts",
     "convert.ts",
     "web.ts",
+    "vendor/",
     "patches/"
   ],
   "publishConfig": {

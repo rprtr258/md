@@ -16,7 +16,7 @@ export const processor = unified()
   .use(remarkGfm)
   .use(remarkFrontmatter)
   .use(remarkRehype, {allowDangerousHtml: true})
-  .use(rehypeHighlight, {detect: true})
+  .use(rehypeHighlight, {detect: true, plainText: ["mermaid"]})
   .use(rehypeStringify);
 
 export async function read(file: string): Promise<string> {

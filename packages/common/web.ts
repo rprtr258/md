@@ -1,4 +1,4 @@
-import {mkdtemp, writeFile} from "node:fs/promises";
+import {copyFile, mkdtemp, writeFile} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
 import {spawn} from "node:child_process";
@@ -58,7 +58,13 @@ li:has(>input[type=checkbox]){list-style:none;margin-left:-1.3em}
 .hljs-title,.hljs-function,.hljs-built_in,.hljs-type,.hljs-class{color:var(--fn)}
 .hljs-emphasis{font-style:italic}
 .hljs-strong{font-weight:600}
+pre.mermaid{overflow:hidden;cursor:grab;touch-action:none;user-select:none}
+pre.mermaid:active{cursor:grabbing}
 `;
+
+// mermaid diagrams render client-side, always dark theme; the vendored script is copied next to index.html by web()
+// pane: wheel = zoom at cursor, drag = pan, double-click = reset; bright fills (notes etc) are inverted for dark mode
+const mermaidScript = `<script src="./mermaid.min.js"></script>\n<script>mermaid.initialize({startOnLoad:false,theme:"dark"});addEventListener("DOMContentLoaded",async()=>{await mermaid.run();for(const rect of document.querySelectorAll("pre.mermaid rect")){const m=getComputedStyle(rect).fill.match(/[\\d.]+/g);if(m&&m.length>2&&(0.2126*m[0]+0.7152*m[1]+0.0722*m[2])/255>.5)rect.style.filter="invert(1)"}for(const pre of document.querySelectorAll("pre.mermaid")){const svg=pre.querySelector("svg");if(!svg)continue;svg.style.transformOrigin="0 0";let s=1,x=0,y=0;const apply=()=>svg.style.transform=\`translate(\${x}px,\${y}px) scale(\${s})\`;const r=()=>pre.getBoundingClientRect(),L=pre.clientLeft+parseFloat(getComputedStyle(pre).paddingLeft),T=pre.clientTop+parseFloat(getComputedStyle(pre).paddingTop);pre.addEventListener("wheel",e=>{e.preventDefault();const f=e.deltaY<0?1.1:1/1.1;if(s*f<.1||s*f>20)return;const b=r(),px=e.clientX-b.left-L,py=e.clientY-b.top-T;x=px-(px-x)*f;y=py-(py-y)*f;s*=f;apply()},{passive:false});let ox=0,oy=0,down=false;pre.addEventListener("pointerdown",e=>{down=true;ox=e.clientX-x;oy=e.clientY-y;pre.setPointerCapture(e.pointerId)});pre.addEventListener("pointermove",e=>{if(down){x=e.clientX-ox;y=e.clientY-oy;apply()}});pre.addEventListener("pointerup",()=>down=false);pre.addEventListener("pointercancel",()=>down=false);pre.addEventListener("dblclick",()=>{s=1;x=0;y=0;apply()})}})</script>\n`;
 
 export function render(source: string): string {
   // frontmatter shown as a table at the top, separated from the body
@@ -67,13 +73,19 @@ export function render(source: string): string {
   const head = yaml ? `<div class="frontmatter">${renderFrontmatter(yaml.value)}</div>\n<hr>\n` : "";
   const body = yaml?.position ? source.slice(yaml.position.end.offset) : source;
   const title = tree.children.find((child): child is Heading => child.type === "heading" && child.depth === 1);
-  return `<!doctype html>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${escape(title ? headingText(title).trim() : "markdown")}</title>\n<style>${css}</style>\n${head}${processor.processSync(body)}`;
+  const html = processor.processSync(body).toString()
+    .replaceAll(/<pre><code class="language-mermaid[^\"]*">([\s\S]*?)<\/code><\/pre>/g, '<pre class="mermaid">$1</pre>');
+  return `<!doctype html>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${escape(title ? headingText(title).trim() : "markdown")}</title>\n<style>${css}</style>\n${head}${html}${html.includes('<pre class="mermaid">') ? mermaidScript : ""}`;
 }
 
 export async function web(source: string): Promise<void> {
   const dir = await mkdtemp(join(tmpdir(), "md-web-"));
   const file = join(dir, "index.html");
-  await writeFile(file, render(source));
+  const html = render(source);
+  await writeFile(file, html);
+  if (html.includes('<script src="./mermaid.min.js">')) {
+    await copyFile(new URL("./vendor/mermaid.min.js", import.meta.url), join(dir, "mermaid.min.js"));
+  }
   const openers: Record<string, [string, string[]]> = {
     darwin: ["open", []],
     win32: ["cmd", ["/c", "start", ""]],

@@ -6,6 +6,7 @@ describe("render", () => {
     ["frontmatter as table above the body", "---\ntitle: x\ntags:\n  - a\n  - b\nmeta:\n  y: 1\n---\n\n# Hello\n\n**world**\n"],
     ["no frontmatter has no separator", "# Hello\n"],
     ["non-object frontmatter as raw code", "---\njust a string\n---\n\n# Hello\n"],
+    ["mermaid block becomes a mermaid diagram with the vendored script", "# Hello\n\n```mermaid\ngraph TD\nA-->B\n```\n"],
   ])("%s", (_name, input) => {
     expect(render(input)).toMatchSnapshot();
   });
