@@ -37,8 +37,5 @@
     "tesseract.js": "^7.0.0",
     "unified": "^11.0.5",
     "yaml": "^2.8.1"
-  },
-  "patchedDependencies": {
-    "tesseract.js@7.0.0": "patches/tesseract.js@7.0.0.patch"
   }
 }

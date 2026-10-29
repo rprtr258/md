@@ -7,10 +7,10 @@ import {getDocPageSync, parse} from "@optique/core/parser";
 import {argument, command as cmd, constant, option} from "@optique/core/primitives";
 import type {InferValue} from "@optique/core/parser";
 import {string} from "@optique/core/valueparser";
-import {frontmatter, links, list, map, section, stats, toc, read, todos} from "@rprtr258/md-common/md.ts";
-import {lint, lintSchema} from "@rprtr258/md-common/lint.ts";
-import {web} from "@rprtr258/md-common/web.ts";
-import {convert} from "@rprtr258/md-common/convert.ts";
+import {frontmatter, links, list, map, section, stats, toc, read, todos} from "./common/md.ts";
+import {lint, lintSchema} from "./common/lint.ts";
+import {web} from "./common/web.ts";
+import {convert} from "./common/convert.ts";
 
 const file = argument(string({metavar: "FILE"}));
 

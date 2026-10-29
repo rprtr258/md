@@ -15,7 +15,7 @@
     "extensions": ["./extension.ts"]
   },
   "dependencies": {
-    "@rprtr258/md-common": "workspace:*"
+    "@rprtr258/md-common": "*"
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "*",

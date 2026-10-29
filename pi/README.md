@@ -33,8 +33,8 @@ That's it. Check `bun --version` if it doesn't work — every tool runs the CLI 
 
 ```bash
 git clone https://github.com/rprtr258/md && cd md
-pi install ./packages/pi    # install in place
-pi -e ./packages/pi         # or try once, nothing persisted
+pi install ./pi    # install in place
+pi -e ./pi         # or try once, nothing persisted
 ```
 
 There is no git install source: `pi install git:...` looks at the repo root, which is the CLI package, not this one.
