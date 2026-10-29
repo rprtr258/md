@@ -1,8 +1,10 @@
 import {copyFile, mkdtemp, writeFile} from "node:fs/promises";
 import {tmpdir} from "node:os";
-import {join} from "node:path";
+import {dirname, join, resolve} from "node:path";
+import {pathToFileURL} from "node:url";
 import {spawn} from "node:child_process";
 import {parse as yamlParse} from "yaml";
+import type {Transformer} from "unified";
 import type {Heading} from "mdast";
 import {headingText, processor} from "./md.ts";
 
@@ -66,23 +68,57 @@ pre.mermaid:active{cursor:grabbing}
 // pane: wheel = zoom at cursor, drag = pan, double-click = reset; bright fills (notes etc) are inverted for dark mode
 const mermaidScript = `<script src="./mermaid.min.js"></script>\n<script>mermaid.initialize({startOnLoad:false,theme:"dark"});addEventListener("DOMContentLoaded",async()=>{await mermaid.run();for(const rect of document.querySelectorAll("pre.mermaid rect")){const m=getComputedStyle(rect).fill.match(/[\\d.]+/g);if(m&&m.length>2&&(0.2126*m[0]+0.7152*m[1]+0.0722*m[2])/255>.5)rect.style.filter="invert(1)"}for(const pre of document.querySelectorAll("pre.mermaid")){const svg=pre.querySelector("svg");if(!svg)continue;svg.style.transformOrigin="0 0";let s=1,x=0,y=0;const apply=()=>svg.style.transform=\`translate(\${x}px,\${y}px) scale(\${s})\`;const r=()=>pre.getBoundingClientRect(),L=pre.clientLeft+parseFloat(getComputedStyle(pre).paddingLeft),T=pre.clientTop+parseFloat(getComputedStyle(pre).paddingTop);pre.addEventListener("wheel",e=>{e.preventDefault();const f=e.deltaY<0?1.1:1/1.1;if(s*f<.1||s*f>20)return;const b=r(),px=e.clientX-b.left-L,py=e.clientY-b.top-T;x=px-(px-x)*f;y=py-(py-y)*f;s*=f;apply()},{passive:false});let ox=0,oy=0,down=false;pre.addEventListener("pointerdown",e=>{down=true;ox=e.clientX-x;oy=e.clientY-y;pre.setPointerCapture(e.pointerId)});pre.addEventListener("pointermove",e=>{if(down){x=e.clientX-ox;y=e.clientY-oy;apply()}});pre.addEventListener("pointerup",()=>down=false);pre.addEventListener("pointercancel",()=>down=false);pre.addEventListener("dblclick",()=>{s=1;x=0;y=0;apply()})}})</script>\n`;
 
-export function render(source: string): string {
+// relative image srcs and link hrefs would resolve against the temp dir the html lives in; rewrite them to point at the source dir instead
+function resolveRelativePaths(baseDir: string): Transformer {
+  return tree => {
+    walkResources(tree, baseDir);
+  };
+}
+
+function walkResources(node: unknown, baseDir: string): void {
+  if (typeof node !== "object" || node === null)
+    return;
+  const {tagName, properties, children} = node as {tagName?: unknown, properties?: Record<string, unknown>, children?: unknown[]};
+  const attr = tagName === "img" ? "src" : tagName === "a" ? "href" : undefined;
+  if (attr !== undefined && properties !== undefined && typeof properties[attr] === "string") {
+    properties[attr] = fileUrl(properties[attr] as string, baseDir);
+  }
+  if (children !== undefined) {
+    for (const child of children)
+      walkResources(child, baseDir);
+  }
+}
+
+function fileUrl(url: string, baseDir: string): string {
+  if (/^[a-zA-Z][a-zA-Z\d+.-]*:/.test(url) || url.startsWith("/") || url.startsWith("#")) return url;
+  // characters like spaces arrive percent-encoded from the markdown parser; decode them back before building the file url
+  let path = url;
+  try {
+    path = decodeURIComponent(url);
+  } catch {
+    // stray percent sign, not a valid escape: keep the raw string
+  }
+  return pathToFileURL(resolve(baseDir, path)).href;
+}
+
+export function render(source: string, baseDir?: string): string {
   // frontmatter shown as a table at the top, separated from the body
   const tree = processor.parse(source);
   const yaml = tree.children.find(child => child.type === "yaml");
   const head = yaml ? `<div class="frontmatter">${renderFrontmatter(yaml.value)}</div>\n<hr>\n` : "";
   const body = yaml?.position ? source.slice(yaml.position.end.offset) : source;
   const title = tree.children.find((child): child is Heading => child.type === "heading" && child.depth === 1);
-  const html = processor.processSync(body).toString()
+  const p = baseDir === undefined ? processor : processor().use(() => resolveRelativePaths(baseDir));
+  const html = p.processSync(body).toString()
     .replaceAll(/<pre><code class="language-mermaid[^\"]*">([\s\S]*?)<\/code><\/pre>/g, '<pre class="mermaid">$1</pre>');
   return `<!doctype html>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${escape(title ? headingText(title).trim() : "markdown")}</title>\n<style>${css}</style>\n${head}${html}${html.includes('<pre class="mermaid">') ? mermaidScript : ""}`;
 }
 
-export async function web(source: string): Promise<void> {
+export async function web(source: string, file?: string): Promise<void> {
   const dir = await mkdtemp(join(tmpdir(), "md-web-"));
-  const file = join(dir, "index.html");
-  const html = render(source);
-  await writeFile(file, html);
+  const htmlFile = join(dir, "index.html");
+  const html = render(source, file === undefined ? undefined : dirname(file));
+  await writeFile(htmlFile, html);
   if (html.includes('<script src="./mermaid.min.js">')) {
     await copyFile(new URL("./vendor/mermaid.min.js", import.meta.url), join(dir, "mermaid.min.js"));
   }
@@ -93,8 +129,8 @@ export async function web(source: string): Promise<void> {
   };
   if (process.platform in openers) {
     const [command, prefix] = openers[process.platform]!;
-    spawn(command, [...prefix, file], {stdio: "ignore", detached: true}).unref();
+    spawn(command, [...prefix, htmlFile], {stdio: "ignore", detached: true}).unref();
   } else {
-    console.log(`Open ${file}`);
+    console.log(`Open ${htmlFile}`);
   }
 }

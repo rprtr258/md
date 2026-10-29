@@ -121,7 +121,7 @@ async function dispatch(value: InferValue<typeof parser>): Promise<void> {
       return;
     }
     case "web":
-      await web(await read(value.file));
+      await web(await read(value.file), value.file === "-" ? undefined : value.file);
       return;
     case "map": {
       const out = await map(value.directory, value.title);
