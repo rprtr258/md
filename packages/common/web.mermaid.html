@@ -1,0 +1,69 @@
+<script src="./mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ startOnLoad: false, theme: "dark" });
+  addEventListener("DOMContentLoaded", async () => {
+    await mermaid.run();
+    for (const rect of document.querySelectorAll("pre.mermaid rect")) {
+      const m = getComputedStyle(rect).fill.match(/[\d.]+/g);
+      if (
+        m &&
+        m.length > 2 &&
+        (0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]) / 255 > 0.5
+      )
+        rect.style.filter = "invert(1)";
+    }
+    for (const pre of document.querySelectorAll("pre.mermaid")) {
+      const svg = pre.querySelector("svg");
+      if (!svg) continue;
+      svg.style.transformOrigin = "0 0";
+      let s = 1,
+        x = 0,
+        y = 0;
+      const apply = () =>
+        (svg.style.transform = `translate(${x}px,${y}px) scale(${s})`);
+      const r = () => pre.getBoundingClientRect(),
+        L = pre.clientLeft + parseFloat(getComputedStyle(pre).paddingLeft),
+        T = pre.clientTop + parseFloat(getComputedStyle(pre).paddingTop);
+      pre.addEventListener(
+        "wheel",
+        (e) => {
+          e.preventDefault();
+          const f = e.deltaY < 0 ? 1.1 : 1 / 1.1;
+          if (s * f < 0.1 || s * f > 20) return;
+          const b = r(),
+            px = e.clientX - b.left - L,
+            py = e.clientY - b.top - T;
+          x = px - (px - x) * f;
+          y = py - (py - y) * f;
+          s *= f;
+          apply();
+        },
+        { passive: false },
+      );
+      let ox = 0,
+        oy = 0,
+        down = false;
+      pre.addEventListener("pointerdown", (e) => {
+        down = true;
+        ox = e.clientX - x;
+        oy = e.clientY - y;
+        pre.setPointerCapture(e.pointerId);
+      });
+      pre.addEventListener("pointermove", (e) => {
+        if (down) {
+          x = e.clientX - ox;
+          y = e.clientY - oy;
+          apply();
+        }
+      });
+      pre.addEventListener("pointerup", () => (down = false));
+      pre.addEventListener("pointercancel", () => (down = false));
+      pre.addEventListener("dblclick", () => {
+        s = 1;
+        x = 0;
+        y = 0;
+        apply();
+      });
+    }
+  });
+</script>

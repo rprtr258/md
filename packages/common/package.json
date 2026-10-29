@@ -9,6 +9,8 @@
     "lint.ts",
     "convert.ts",
     "web.ts",
+    "web.css",
+    "web.mermaid.html",
     "vendor/",
     "patches/"
   ],
