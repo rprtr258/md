@@ -1,6 +1,7 @@
 import {existsSync} from "node:fs";
-import {readFile} from "node:fs/promises";
-import {dirname, extname} from "node:path";
+import {mkdtemp, readFile, writeFile} from "node:fs/promises";
+import {tmpdir} from "node:os";
+import {dirname, extname, join} from "node:path";
 import {fileURLToPath} from "node:url";
 import Tesseract, {createWorker} from "tesseract.js";
 import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
@@ -13,10 +14,13 @@ async function convertPdf(file: string): Promise<string> {
     data: new Uint8Array(await readFile(file)),
     standardFontDataUrl,
   }).promise;
+  // Page images go to files, never inline base64: a data URI per scanned page is
+  // megabytes of noise for a reader that only wants the text.
+  let pageImageDir: Promise<string> | undefined;
   const pages2 = await Promise.all(Array.from({length: doc.numPages}).map((_, i) => doc.getPage(i + 1)));
   const pages = await Promise.all(pages2.map(async (page, i) => {
     // Text-based page: extract its text layer. Page without a text layer
-    // (scanned): embed the rendered page as an inline base64 image instead.
+    // (scanned): render it to a PNG file and link it.
     let text = "";
     let lastY: number | null = null;
     for (const item of (await page.getTextContent()).items) {
@@ -52,8 +56,10 @@ async function convertPdf(file: string): Promise<string> {
           },
         },
       } as any).promise;
-      const png = await canvas.encode("png");
-      text = `![page ${i + 1}](data:image/png;base64,${Buffer.from(png).toString("base64")})`;
+      pageImageDir ??= mkdtemp(join(tmpdir(), "md-convert-"));
+      const image = join(await pageImageDir, `page-${i + 1}.png`);
+      await writeFile(image, await canvas.encode("png"));
+      text = `![page ${i + 1}](${image})`;
     }
     return text;
   }));
