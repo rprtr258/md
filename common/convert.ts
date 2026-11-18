@@ -1,6 +1,6 @@
 import {existsSync} from "node:fs";
 import {readFile} from "node:fs/promises";
-import {extname} from "node:path";
+import {dirname, extname} from "node:path";
 import {fileURLToPath} from "node:url";
 import Tesseract, {createWorker} from "tesseract.js";
 import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
@@ -62,10 +62,14 @@ async function convertPdf(file: string): Promise<string> {
 
 // Bun resolves tesseract.js's default workerPath through its global install cache,
 // where dependencies like regenerator-runtime are unresolvable and the worker hangs,
-// so point it at the local copy explicitly.
-const workerPath = fileURLToPath(new URL("./node_modules/tesseract.js/src/worker-script/node/index.js", import.meta.url));
+// so point it at the installed copy explicitly. Resolve through the package entry
+// rather than a sibling node_modules: a flat install hoists these dependencies into
+// the consumer's tree, leaving no copy beside this file and crashing the worker
+// thread that tesseract.js spawns from workerPath.
+const packageDir = (name: string) => dirname(fileURLToPath(import.meta.resolve(`${name}/package.json`)));
+const workerPath = `${packageDir("tesseract.js")}/src/worker-script/node/index.js`;
 const langPath = "https://tessdata.projectnaptha.com/4.0.0_best";
-const standardFontDataUrl = fileURLToPath(new URL("./node_modules/pdfjs-dist/standard_fonts/", import.meta.url));
+const standardFontDataUrl = `${packageDir("pdfjs-dist")}/standard_fonts/`;
 
 export async function convertImage(file: string): Promise<string> {
   const worker = await createWorker("eng", 1, {workerPath, langPath});
