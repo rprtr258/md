@@ -25,37 +25,23 @@ async function convertPdf(file: string): Promise<string> {
     let lastY: number | null = null;
     for (const item of (await page.getTextContent()).items) {
       if (!("str" in item)) continue;
-      const y = item.transform[5];
+      const y = item.transform[5] as number;
       if (lastY !== null && (Math.abs(y - lastY) > 3 || item.hasEOL)) {
         text += "\n";
-      } else if (text) {
+      } else if (text !== "") {
         text += " ";
       }
       text += item.str;
       lastY = y;
     }
     text = text.trim();
-    if (!text) {
+    if (text === "") {
       const viewport = page.getViewport({scale: RENDER_SCALE});
       const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
       await page.render({
-        canvasContext: canvas.getContext("2d") as any,
+        canvas: canvas as unknown as HTMLCanvasElement,
         viewport,
-        canvasFactory: {
-          create: (width: number, height: number) => {
-            const canvas = createCanvas(width, height);
-            return {canvas, context: canvas.getContext("2d") as any};
-          },
-          reset: (c: {canvas: {width: number; height: number}}, width: number, height: number) => {
-            c.canvas.width = width;
-            c.canvas.height = height;
-          },
-          destroy: (c: {canvas: {width: number; height: number}}) => {
-            c.canvas.width = 0;
-            c.canvas.height = 0;
-          },
-        },
-      } as any).promise;
+      }).promise;
       pageImageDir ??= mkdtemp(join(tmpdir(), "md-convert-"));
       const image = join(await pageImageDir, `page-${i + 1}.png`);
       await writeFile(image, await canvas.encode("png"));

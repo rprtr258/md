@@ -9,14 +9,14 @@ export async function run(args: string[], input?: string) {
   const err: string[] = [];
   const realLog = console.log;
   const realError = console.error;
-  const realWrite = process.stdout.write;
+  const realWrite = process.stdout.write.bind(process.stdout);
   const realStdin = Bun.stdin;
   console.log = (...values: unknown[]) => out.push(values.map(String).join(" ") + "\n");
   console.error = (...values: unknown[]) => err.push(values.map(String).join(" ") + "\n");
   process.stdout.write = ((chunk: unknown): boolean => {
     out.push(String(chunk));
     return true;
-  }) as typeof process.stdout.write;
+  });
   if (input !== undefined)
     (Bun as {stdin: unknown}).stdin = {text: () => Promise.resolve(input)};
   const cwd = process.cwd();
@@ -93,7 +93,7 @@ describe("get", () => {
     test("--json prints parsed frontmatter", async () => {
       const {out, code} = await run(["get", "frontmatter", "--json", "basic.md"]);
       expect(code).toBe(0);
-      expect(out).toContain('"title": "Test"');
+      expect(out).toContain("\"title\": \"Test\"");
     });
 
     test("reads stdin with -", async () => {

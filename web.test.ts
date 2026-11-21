@@ -1,3 +1,4 @@
+import {readFileSync} from "node:fs";
 import {describe, expect, test} from "bun:test";
 import {render} from "./common/web.ts";
 
@@ -11,13 +12,19 @@ describe("render", () => {
     expect(render(input)).toMatchSnapshot();
   });
 
+  test("task list checkboxes render not disabled", () => {
+    const html = render("- [ ] open\n- [x] done\n");
+    expect(html).toContain(`<input type="checkbox"> open`);
+    expect(html).toContain(`<input type="checkbox" checked> done`);
+  });
+
   test("gfm tables render", async () => {
-    const html = render(await Bun.file(new URL("testdata/tables.md", import.meta.url)).text());
+    const html = render(readFileSync(new URL("testdata/tables.md", import.meta.url), "utf8"));
     expect(html.match(/<table/g)).toHaveLength(2);
   });
 
   test("reference links render resolved", async () => {
-    const html = render(await Bun.file(new URL("testdata/reflinks.md", import.meta.url)).text());
+    const html = render(readFileSync(new URL("testdata/reflinks.md", import.meta.url), "utf8"));
     const hrefs = [...html.matchAll(/<a href="([^"]+)"/g)].map((match) => match[1]!);
     expect(hrefs).toEqual([
       "https://www.somewebsite.com",

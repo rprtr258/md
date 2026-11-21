@@ -4,7 +4,7 @@ import {collectLinks, findFiles, frontmatter, headingText, processor, read} from
 import {parse as yamlParse} from "yaml";
 
 type Diagnostic = {
-  rule: "missing-h1" | "duplicate-heading" | "heading-skip" | "broken-link" | "empty-link-url" | "unclosed-fence",
+  rule: "missing-h1" | "duplicate-heading" | "heading-skip" | "broken-link" | "empty-link-url" | "unclosed-fence" | "invalid-yaml",
   line: number,
   detail: string,
 };
@@ -12,6 +12,20 @@ type Diagnostic = {
 async function* lintFile(file: string): AsyncGenerator<Diagnostic> {
   const source = await read(file);
   const tree = processor.parse(source);
+
+  const yamlNode = tree.children.find(node => node.type === "yaml");
+  if (yamlNode !== undefined) {
+    try {
+      yamlParse(yamlNode.value);
+    } catch (error) {
+      // yaml errors embed a source excerpt after the first line; keep the message single-line for output
+      yield {
+        rule: "invalid-yaml",
+        line: yamlNode.position?.start.line ?? 1,
+        detail: (error instanceof Error ? error.message : String(error)).split("\n")[0]!,
+      };
+    }
+  }
 
   const headings = tree.children.filter(node => node.type === "heading");
   if (!headings.some(node => node.depth === 1)) {
@@ -29,7 +43,7 @@ async function* lintFile(file: string): AsyncGenerator<Diagnostic> {
     } else {
       seen.set(text, line);
     }
-    if (previous && node.depth - previous.depth > 1) {
+    if (previous !== undefined && node.depth - previous.depth > 1) {
       yield {rule: "heading-skip", line, detail: `h${previous.depth} to h${node.depth}`};
     }
     previous = node;
@@ -52,8 +66,8 @@ async function* lintFile(file: string): AsyncGenerator<Diagnostic> {
   let fence: {char: string, length: number, line: number} | undefined;
   for (const [i, line] of source.split("\n").entries()) {
     const open = line.match(/^ {0,3}(`{3,}|~{3,})/);
-    if (!fence) {
-      if (open) {
+    if (fence === undefined) {
+      if (open !== null) {
         const info = line.slice(open[0].length);
         if (!open[1]!.startsWith("`") || !info.includes("`")) {
           fence = {char: open[1]![0]!, length: open[1]!.length, line: i + 1};
@@ -63,7 +77,7 @@ async function* lintFile(file: string): AsyncGenerator<Diagnostic> {
       fence = undefined;
     }
   }
-  if (fence) {
+  if (fence !== undefined) {
     yield {rule: "unclosed-fence", line: fence.line, detail: "code fence opened but never closed"};
   }
 }
@@ -89,7 +103,7 @@ export async function lintSchema(file: string, schemaFile: string): Promise<stri
   if (raw === undefined)
     throw new Error(`No frontmatter in ${file}`);
   const schema = yamlParse(await read(schemaFile)) as {$schema?: string};
-  const {default: Ajv} = schema.$schema?.includes("2020-12")
+  const {default: Ajv} = (schema.$schema?.includes("2020-12") ?? false)
     ? await import("ajv/dist/2020")
     : await import("ajv");
   const validate = new Ajv({allErrors: true}).compile(schema);
@@ -98,7 +112,7 @@ export async function lintSchema(file: string, schemaFile: string): Promise<stri
   const errors = validate.errors ?? [];
   const lines = [file];
   for (const {instancePath, message} of errors) {
-    lines.push(`  schema: ${instancePath || "/"} ${message}`);
+    lines.push(`  schema: ${instancePath === "" ? "/" : instancePath} ${message}`);
   }
   return lines.join("\n");
 }

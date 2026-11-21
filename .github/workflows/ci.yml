@@ -1,0 +1,18 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      # separate steps for distinct failure signals; `bun run ci` composes the same for local use
+      - run: bun run lint
+      - run: bun run typecheck
+      - run: bun test

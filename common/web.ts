@@ -18,11 +18,11 @@ function escape(value: string): string {
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
+    .replaceAll("\"", "&quot;");
 }
 
 function renderFrontmatter(yaml: string): string {
-  const data = yamlParse(yaml);
+  const data: unknown = yamlParse(yaml);
   if (typeof data !== "object" || data === null) {
     return `<code>${escape(yaml)}</code>`;
   }
@@ -45,7 +45,7 @@ function walkResources(node: unknown, baseDir: string): void {
   const {tagName, properties, children} = node as {tagName?: unknown, properties?: Record<string, unknown>, children?: unknown[]};
   const attr = tagName === "img" ? "src" : tagName === "a" ? "href" : undefined;
   if (attr !== undefined && properties !== undefined && typeof properties[attr] === "string") {
-    properties[attr] = fileUrl(properties[attr] as string, baseDir);
+    properties[attr] = fileUrl(properties[attr], baseDir);
   }
   if (children !== undefined) {
     for (const child of children)
@@ -65,17 +65,38 @@ function fileUrl(url: string, baseDir: string): string {
   return pathToFileURL(resolve(baseDir, path)).href;
 }
 
+// mdast-util-to-hast emits task-list checkboxes with disabled; drop it so they render as ordinary clickable checkboxes
+function enableCheckboxes(): Transformer {
+  return tree => {
+    walkCheckboxes(tree);
+  };
+}
+
+function walkCheckboxes(node: unknown): void {
+  if (typeof node !== "object" || node === null)
+    return;
+  const {tagName, properties, children} = node as {tagName?: unknown, properties?: Record<string, unknown>, children?: unknown[]};
+  if (tagName === "input" && properties !== undefined && properties.type === "checkbox")
+    delete properties.disabled;
+  if (children !== undefined) {
+    for (const child of children)
+      walkCheckboxes(child);
+  }
+}
+
 export function render(source: string, baseDir?: string): string {
   // frontmatter shown as a table at the top, separated from the body
   const tree = processor.parse(source);
   const yaml = tree.children.find(child => child.type === "yaml");
-  const head = yaml ? `<div class="frontmatter">${renderFrontmatter(yaml.value)}</div>\n<hr>\n` : "";
-  const body = yaml?.position ? source.slice(yaml.position.end.offset) : source;
+  const head = yaml !== undefined ? `<div class="frontmatter">${renderFrontmatter(yaml.value)}</div>\n<hr>\n` : "";
+  const body = yaml?.position !== undefined ? source.slice(yaml.position.end.offset) : source;
   const title = tree.children.find((child): child is Heading => child.type === "heading" && child.depth === 1);
-  const p = baseDir === undefined ? processor : processor().use(() => resolveRelativePaths(baseDir));
+  // a fresh processor instance: use() mutates its receiver, and the shared processor must stay untouched
+  const p = baseDir === undefined ? processor() : processor().use(() => resolveRelativePaths(baseDir));
+  p.use(() => enableCheckboxes());
   const html = p.processSync(body).toString()
-    .replaceAll(/<pre><code class="language-mermaid[^\"]*">([\s\S]*?)<\/code><\/pre>/g, '<pre class="mermaid">$1</pre>');
-  return `<!doctype html>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${escape(title ? headingText(title).trim() : "markdown")}</title>\n<style>${css}</style>\n${head}${html}${html.includes('<pre class="mermaid">') ? mermaidScript : ""}`;
+    .replaceAll(/<pre><code class="language-mermaid[^\"]*">([\s\S]*?)<\/code><\/pre>/g, "<pre class=\"mermaid\">$1</pre>");
+  return `<!doctype html>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>${escape(title !== undefined ? headingText(title).trim() : "markdown")}</title>\n<style>${css}</style>\n${head}${html}${html.includes("<pre class=\"mermaid\">") ? mermaidScript : ""}`;
 }
 
 export async function web(source: string, file?: string): Promise<void> {
@@ -83,7 +104,7 @@ export async function web(source: string, file?: string): Promise<void> {
   const htmlFile = join(dir, "index.html");
   const html = render(source, file === undefined ? undefined : dirname(file));
   await writeFile(htmlFile, html);
-  if (html.includes('<script src="./mermaid.min.js">')) {
+  if (html.includes("<script src=\"./mermaid.min.js\">")) {
     await copyFile(new URL("./vendor/mermaid.min.js", import.meta.url), join(dir, "mermaid.min.js"));
   }
   const openers: Record<string, [string, string[]]> = {

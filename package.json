@@ -21,12 +21,22 @@
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "ci": "bun run typecheck && bun test"
+    "lint": "eslint '**/*.{ts,json,md}'",
+    "ci": "bun run lint && bun run typecheck && bun test"
   },
   "devDependencies": {
+    "@eslint/core": "^1.2.1",
+    "@eslint/js": "^10.0.1",
+    "@stylistic/eslint-plugin": "^5.10.0",
     "@types/bun": "^1.4.2",
     "@types/mdast": "^4.0.4",
-    "typescript": "^7.0.2"
+    "@typescript-eslint/utils": "^8.73.0",
+    "eslint": "^10.10.0",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-jest": "^29.17.0",
+    "jiti": "^2.7.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "^8.69.0"
   },
   "peerDependencies": {
     "typescript": "^7"

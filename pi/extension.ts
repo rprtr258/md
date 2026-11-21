@@ -35,7 +35,7 @@ export const tools = [
     async (params) => todos(await read(params.file)).join("\n")),
   mdTool("toc", "Print the table of contents (headers) of a markdown file.",
     Type.Object({file}),
-    async (params) => toc(await read(params.file)) ?? ""),
+    async (params) => toc(await read(params.file))),
   mdTool("section", "Print everything under a heading of a markdown file.",
     Type.Object({
       file,
