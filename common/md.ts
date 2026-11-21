@@ -138,11 +138,11 @@ export function section(source: string, heading: string): string {
     return texts.map(slug).findIndex(text => text === target);
   })();
   const match = headings[index];
-  if (!match?.position) {
+  if (match === undefined || match.position === undefined) {
     throw new Error(`Heading not found: ${heading}`);
   }
   const next = headings.slice(index + 1).find(node => node.depth <= match.depth);
-  const end = next?.position ? next.position.start.line - 1 : lines.length;
+  const end = next?.position !== undefined ? next.position.start.line - 1 : lines.length;
   return lines.slice(match.position.start.line - 1, end).join("\n");
 }
 
@@ -180,7 +180,7 @@ export function todos(source: string): string[] {
   const lines = source.split("\n");
   const result: string[] = [];
   const walk = (node: Root | RootContent): void => {
-    if (node.type === "listItem" && node.checked !== null && node.position) {
+    if (node.type === "listItem" && node.checked !== null && node.position !== undefined) {
       result.push(lines[node.position.start.line - 1] ?? "");
     }
     if ("children" in node) {
@@ -199,7 +199,7 @@ export async function map(directory = ".", titles = false): Promise<string> {
     const headings = processor.parse(await read(resolve(directory, file))).children.filter(node => node.type === "heading");
     if (titles) {
       const heading = headings.find(node => node.depth === 1);
-      lines.push(heading ? `${file}: ${headingText(heading)}` : file);
+      lines.push(heading !== undefined ? `${file}: ${headingText(heading)}` : file);
     } else {
       lines.push(file);
       for (const node of headings) {

@@ -3,7 +3,7 @@ import {tools} from "./extension.ts";
 
 function call(name: string, params: unknown): Promise<string> {
   const tool = tools.find(t => t.name === name)! as unknown as {
-    execute: (...args: unknown[]) => Promise<{content: Array<{text: string}>}>;
+    execute: (...args: unknown[]) => Promise<{content: Array<{text: string}>}>,
   };
   return tool.execute("test", params, new AbortController().signal, {}, undefined)
     .then(result => result.content[0]!.text);
@@ -14,5 +14,5 @@ test("md_stats returns line counts", async () => {
 });
 
 test("md_stats propagates read errors", async () => {
-  expect(call("md_stats", {file: "/nonexistent.md"})).rejects.toThrow("File not found");
+  await expect(call("md_stats", {file: "/nonexistent.md"})).rejects.toThrow("File not found");
 });

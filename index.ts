@@ -90,7 +90,7 @@ async function dispatch(value: InferValue<typeof parser>): Promise<void> {
       return;
     case "toc": {
       const out = toc(await read(value.file));
-      if (out) console.log(out);
+      if (out !== "") console.log(out);
       return;
     }
     case "section":
@@ -101,12 +101,12 @@ async function dispatch(value: InferValue<typeof parser>): Promise<void> {
       return;
     case "list": {
       const out = await list(value.directory);
-      if (out) console.log(out);
+      if (out !== "") console.log(out);
       return;
     }
     case "lint": {
       const out = await lint(value.pathArg);
-      if (out) {
+      if (out !== "") {
         console.log(out);
         throw new Error("issues found");
       }
@@ -114,7 +114,7 @@ async function dispatch(value: InferValue<typeof parser>): Promise<void> {
     }
     case "lintSchema": {
       const out = await lintSchema(value.file, value.schema);
-      if (out) {
+      if (out !== "") {
         console.log(out);
         throw new Error("issues found");
       }
@@ -125,7 +125,7 @@ async function dispatch(value: InferValue<typeof parser>): Promise<void> {
       return;
     case "map": {
       const out = await map(value.directory, value.title);
-      if (out) console.log(out);
+      if (out !== "") console.log(out);
       return;
     }
     case "convert":

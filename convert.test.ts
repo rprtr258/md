@@ -1,4 +1,5 @@
 import {describe, expect, test} from "bun:test";
+import {readFile} from "node:fs/promises";
 import {fileURLToPath} from "node:url";
 import {convert} from "./common/convert.ts";
 
@@ -19,7 +20,7 @@ describe("convert", () => {
   });
 
   test("writes the png the link points at", async () => {
-    const png = await Bun.file(out.match(/!\[page 2\]\(([^)]+)\)/)![1]!).arrayBuffer();
-    expect([...new Uint8Array(png.slice(0, 4))]).toEqual([0x89, 0x50, 0x4e, 0x47]);
+    const png = await readFile(out.match(/!\[page 2\]\(([^)]+)\)/)![1]!);
+    expect([...png.subarray(0, 4)]).toEqual([0x89, 0x50, 0x4e, 0x47]);
   });
 });
