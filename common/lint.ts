@@ -4,7 +4,7 @@ import {collectLinks, findFiles, frontmatter, headingText, processor, read} from
 import {parse as yamlParse} from "yaml";
 
 type Diagnostic = {
-  rule: "missing-h1" | "duplicate-heading" | "heading-skip" | "broken-link" | "empty-link-url" | "unclosed-fence",
+  rule: "missing-h1" | "duplicate-heading" | "heading-skip" | "broken-link" | "empty-link-url" | "unclosed-fence" | "invalid-yaml",
   line: number,
   detail: string,
 };
@@ -12,6 +12,20 @@ type Diagnostic = {
 async function* lintFile(file: string): AsyncGenerator<Diagnostic> {
   const source = await read(file);
   const tree = processor.parse(source);
+
+  const yamlNode = tree.children.find(node => node.type === "yaml");
+  if (yamlNode !== undefined) {
+    try {
+      yamlParse(yamlNode.value);
+    } catch (error) {
+      // yaml errors embed a source excerpt after the first line; keep the message single-line for output
+      yield {
+        rule: "invalid-yaml",
+        line: yamlNode.position?.start.line ?? 1,
+        detail: (error instanceof Error ? error.message : String(error)).split("\n")[0]!,
+      };
+    }
+  }
 
   const headings = tree.children.filter(node => node.type === "heading");
   if (!headings.some(node => node.depth === 1)) {

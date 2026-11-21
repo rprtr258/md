@@ -13,6 +13,19 @@ describe("lint", () => {
     expect(out).toContain("  11: unclosed-fence:");
   });
 
+  test("flags frontmatter that is not valid yaml", async () => {
+    const {out, code} = await run(["lint", "lint-yaml.md"]);
+    expect(code).toBe(1);
+    expect(out).toContain("lint-yaml.md\n  1: invalid-yaml:");
+  });
+
+  test("flags frontmatter with a second colon", async () => {
+    const {out, code} = await run(["lint", "skill.md"]);
+    expect(code).toBe(1);
+    expect(out).toContain("skill.md\n  1: invalid-yaml:");
+    expect(out).toContain("  1: missing-h1:");
+  });
+
   test("exits 0 and stays silent on a clean file", async () => {
     const {out, code} = await run(["lint", "basic.md"]);
     expect(code).toBe(0);
@@ -28,6 +41,7 @@ describe("lint", () => {
     expect(out).toContain("  7: broken-link:");
     expect(out).toContain("  9: empty-link-url:");
     expect(out).toContain("  11: unclosed-fence:");
+    expect(out).toContain("lint-yaml.md\n  1: invalid-yaml:");
   });
 
   test("exits 0 on a clean directory", async () => {
