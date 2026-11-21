@@ -44,6 +44,7 @@
   "dependencies": {
     "@napi-rs/canvas": "^1.0.9",
     "@optique/core": "^1.3.6",
+    "@rprtr258/eslint-rules": "github:rprtr258/eslint-rules",
     "ajv": "^8.20.0",
     "pdfjs-dist": "^6.3.289",
     "rehype-highlight": "^7.0.0",

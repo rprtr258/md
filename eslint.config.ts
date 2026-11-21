@@ -4,10 +4,10 @@ import tseslint from "typescript-eslint";
 import stylistic from "@stylistic/eslint-plugin";
 import importPlugin from "eslint-plugin-import";
 import jest from "eslint-plugin-jest";
-import {noUnusedClassMembers} from "./eslint/rules/no-unused-class-members.ts";
-import {commentHygiene, mdParser} from "./eslint/rules/comment-hygiene.ts";
-import {noBooleanLiteralCompare} from "./eslint/rules/no-boolean-literal-compare.ts";
-import {noRestatingComments} from "./eslint/rules/no-restating-comments.ts";
+import {noUnusedClassMembers} from "@rprtr258/eslint-rules/no-unused-class-members";
+import {commentHygiene, mdParser} from "@rprtr258/eslint-rules/comment-hygiene";
+import {noBooleanLiteralCompare} from "@rprtr258/eslint-rules/no-boolean-literal-compare";
+import {noRestatingComments} from "@rprtr258/eslint-rules/no-restating-comments";
 
 export default defineConfig([
   {
